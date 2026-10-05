@@ -1,0 +1,10 @@
+{
+  "name": "ticket-trading-agent-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node scripts-test.mjs",
+    "simulate": "node src/simulate.mjs"
+  }
+}
