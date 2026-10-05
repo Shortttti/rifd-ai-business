@@ -21,7 +21,11 @@ const response = await fetch('https://generativelanguage.googleapis.com/v1beta/i
 if (!response.ok) throw new Error(`Gemini API returned HTTP ${response.status}: ${(await response.text()).slice(0,500)}`);
 const result = await response.json();
 let output = result.output_text;
-if (!output && Array.isArray(result.outputs)) output = result.outputs.map(x => x.text ?? '').join('\n');
+if (!output && Array.isArray(result.steps)) {
+  output = result.steps.filter(step => step.type === 'model_output')
+    .flatMap(step => step.content ?? []).filter(part => part.type === 'text')
+    .map(part => part.text ?? '').join('\n');
+}
 if (typeof output !== 'string' || !output.trim()) throw new Error('Gemini returned no text output.');
 output = output.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
 const draft = JSON.parse(output);
