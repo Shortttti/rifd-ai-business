@@ -1,0 +1,13 @@
+{
+  "mode": "paper",
+  "platformBaseUrl": "",
+  "eventUrl": "",
+  "maxSpendSar": 0,
+  "maxTicketPriceSar": 0,
+  "maxTicketsPerEvent": 1,
+  "targetResalePriceSar": 0,
+  "maxPurchaseFeePercent": 0,
+  "maxResaleFeePercent": 0,
+  "minNetProfitSar": 0,
+  "maxQuoteAgeSeconds": 30
+}
