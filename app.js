@@ -1,40 +1,26 @@
-const defaults=[
- {id:'s1',title:'باقة محتوى إطلاق',category:'محتوى',description:'3 منشورات مرتبة مع عبارات قصيرة وأفكار بصرية تناسب بداية مشروعك.',price:149,delivery:'يومان',symbol:'✳'},
- {id:'s2',title:'وصف منتجاتك',category:'محتوى',description:'كتابة أو تحسين وصف 5 منتجات بنبرة واضحة تساعد العميل يفهمها بسرعة.',price:99,delivery:'يوم واحد',symbol:'⌁'},
- {id:'s3',title:'عرضك التقديمي',category:'تصميم',description:'تنسيق عرض من 8 شرائح بمظهر موحد ونصوص مرتبة وسهلة القراءة.',price:199,delivery:'3 أيام',symbol:'▧'},
- {id:'s4',title:'صفحة تعريفية بسيطة',category:'تجهيز رقمي',description:'صفحة واحدة تعرض مشروعك وخدماتك وروابط التواصل بشكل واضح.',price:349,delivery:'5 أيام',symbol:'↗'}
-];
-const get=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}};
-let services=get('rifd_services',defaults), orders=get('rifd_orders',[]), filter='الكل';
-const save=()=>{localStorage.setItem('rifd_services',JSON.stringify(services));localStorage.setItem('rifd_orders',JSON.stringify(orders));render()};
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function toast(msg){let t=document.querySelector('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
-function render(){
- const grid=document.querySelector('#serviceGrid'); const shown=services.filter(s=>filter==='الكل'||s.category===filter);
- grid.innerHTML=shown.map((s,i)=>`<article class="service-card" style="animation-delay:${i*.06}s"><div class="service-symbol">${esc(s.symbol||'✳')}</div><h3>${esc(s.title)}</h3><p>${esc(s.description)}</p><div class="service-meta"><span class="price">${Number(s.price).toLocaleString('ar-SA')} <small>ر.س · ${esc(s.delivery)}</small></span><button data-order="${esc(s.id)}">اطلبيها ↗</button></div></article>`).join('')||'<div class="empty">لا توجد خدمات بهذا التصنيف الآن.</div>';
- document.querySelector('#statOrders').textContent=orders.length.toLocaleString('ar-SA');document.querySelector('#orderCount').textContent=orders.filter(o=>o.status==='جديد').length.toLocaleString('ar-SA');document.querySelector('#statServices').textContent=services.length.toLocaleString('ar-SA');
- let revenue=orders.filter(o=>o.status==='مكتمل').reduce((a,o)=>a+Number(o.price||0),0);document.querySelector('#statRevenue').textContent=`${revenue.toLocaleString('ar-SA')} ر.س`;
- const row=o=>`<div class="order-item"><div><strong>${esc(o.service)}</strong><small>${esc(o.name)} · ${esc(o.contact)} · ${new Date(o.created).toLocaleDateString('ar-SA')}</small></div><span class="price">${Number(o.price||0).toLocaleString('ar-SA')} ر.س</span><select data-status="${esc(o.id)}"><option ${o.status==='جديد'?'selected':''}>جديد</option><option ${o.status==='قيد التنفيذ'?'selected':''}>قيد التنفيذ</option><option ${o.status==='مكتمل'?'selected':''}>مكتمل</option><option ${o.status==='ملغي'?'selected':''}>ملغي</option></select></div>`;
- document.querySelector('#recentOrders').innerHTML=orders.length?orders.slice(0,4).map(row).join(''):'<div class="empty">ما فيه طلبات بعد. كل طلب جديد يظهر هنا.</div>';
- document.querySelector('#allOrders').innerHTML=orders.length?orders.map(row).join(''):'<div class="empty">ستظهر الطلبات هنا بعد إرسالها من المتجر على هذا الجهاز.</div>';
- document.querySelector('#catalogAdmin').innerHTML=services.map(s=>`<div class="admin-service"><div><strong>${esc(s.title)}</strong><small>${esc(s.category)} · ${Number(s.price).toLocaleString('ar-SA')} ر.س</small></div><button data-remove="${esc(s.id)}">حذف</button></div>`).join('')||'<div class="empty">أضيفي أول خدمة لعرضها في المتجر.</div>';
- document.querySelector('#copilotSelect').innerHTML=services.map(s=>`<option value="${esc(s.id)}">${esc(s.title)}</option>`).join('');
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const urlIsSafe = value => { try { const u = new URL(value); return u.protocol === 'https:'; } catch { return false; } };
+async function loadJson(path, fallback) { try { const response = await fetch(path, {cache:'no-store'}); if (!response.ok) throw new Error('fetch'); return await response.json(); } catch { return fallback; } }
+function renderTools(products) {
+  const grid = document.querySelector('#toolGrid');
+  grid.innerHTML = products.map((p, i) => `<article class="tool-card" style="animation-delay:${i * .06}s"><div class="tool-icon">${['⚖','♨','▦','⌁'][i % 4]}</div><span class="tool-category">${escapeHtml(p.category)}</span><h3>${escapeHtml(p.title)}</h3><p>${escapeHtml(p.description)}</p><div class="check-box"><b>قبل الاختيار</b><span>${escapeHtml(p.whatToCheck)}</span></div>${urlIsSafe(p.affiliateUrl) ? `<a class="tool-link" href="${escapeHtml(p.affiliateUrl)}" target="_blank" rel="sponsored nofollow noopener">شاهدي المنتج لدى المتجر ↗</a>` : '<span class="inactive-link">رابط المتجر غير مفعّل بعد</span>'}</article>`).join('');
+  const active = products.some(p => urlIsSafe(p.affiliateUrl));
+  document.querySelector('#affiliateNote').classList.toggle('active-note', active);
+  document.querySelector('#affiliateNote p').textContent = active ? 'قد نكسب عمولة من المشتريات المؤهلة عبر بعض الروابط، دون تكلفة إضافية عليك. هذه التوصيات لا تعني أننا جرّبنا المنتج.' : 'روابط الشراء غير مفعّلة الآن. عند ربط برنامج العمولة سنوضح أي رابط قد يكسبنا عمولة، دون تكلفة إضافية عليك.';
 }
-function open(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden'}function close(id){document.getElementById(id).classList.remove('open');document.body.style.overflow=''}
-document.querySelector('#year').textContent=new Date().getFullYear();
-document.querySelector('#filters').addEventListener('click',e=>{let b=e.target.closest('[data-filter]');if(!b)return;filter=b.dataset.filter;document.querySelectorAll('.filter').forEach(x=>x.classList.toggle('active',x===b));render()});
-document.querySelector('#serviceGrid').addEventListener('click',e=>{let b=e.target.closest('[data-order]');if(!b)return;let s=services.find(x=>x.id===b.dataset.order);document.querySelector('#selectedService').value=s.id;document.querySelector('#orderTitle').textContent=s.title;document.querySelector('#orderDesc').textContent=`${s.price} ر.س · مدة التنفيذ المتوقعة ${s.delivery}. نراجع طلبك ونؤكد السعر والنطاق قبل البدء.`;open('orderModal')});
-document.querySelector('#customRequest').onclick=()=>{document.querySelector('#selectedService').value='custom';document.querySelector('#orderTitle').textContent='طلب خاص';document.querySelector('#orderDesc').textContent='اكتبي فكرتك، وسنرتب نطاقًا وسعرًا مقترحًا قبل التنفيذ.';open('orderModal')};
-document.querySelector('#orderForm').addEventListener('submit',e=>{e.preventDefault();let f=new FormData(e.currentTarget),id=document.querySelector('#selectedService').value,s=services.find(x=>x.id===id);orders.unshift({id:crypto.randomUUID(),service:s?.title||'طلب خدمة خاصة',price:s?.price||0,name:f.get('name'),contact:f.get('contact'),details:f.get('details'),status:'جديد',created:new Date().toISOString()});save();e.currentTarget.reset();close('orderModal');toast('حُفظ الطلب في هذا المتصفح.');});
-document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>close(b.dataset.close));document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)close(m.id)}));window.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-backdrop.open').forEach(m=>close(m.id))});
-document.querySelector('#openDash').onclick=()=>{open('dashModal');render()};
-const labels={overview:'نظرة عامة',orders:'الطلبات',catalog:'الخدمات',copilot:'مساعد البيع'};
-document.querySelector('.dash-side').addEventListener('click',e=>{let b=e.target.closest('[data-tab]');if(!b)return;document.querySelectorAll('.dash-tab').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.dash-panel').forEach(x=>x.classList.toggle('active',x.id===`panel-${b.dataset.tab}`));document.querySelector('#dashHeading').textContent=labels[b.dataset.tab]});
-document.querySelector('.dash-content').addEventListener('click',e=>{let b=e.target.closest('[data-goto]');if(!b)return;let tab=document.querySelector(`[data-tab="${b.dataset.goto}"]`);tab.click()});
-document.querySelector('.dash-content').addEventListener('change',e=>{let id=e.target.dataset.status;if(!id)return;let o=orders.find(x=>x.id===id);if(o){o.status=e.target.value;save();toast('تم تحديث حالة الطلب.')}});
-document.querySelector('#newServiceBtn').onclick=()=>open('serviceModal');
-document.querySelector('#serviceForm').addEventListener('submit',e=>{e.preventDefault();let f=new FormData(e.currentTarget);services.push({id:crypto.randomUUID(),title:f.get('title'),category:f.get('category'),description:f.get('description'),price:Number(f.get('price')),delivery:f.get('delivery'),symbol:'✦'});save();e.currentTarget.reset();close('serviceModal');toast('أُضيفت الخدمة إلى المتجر.')});
-document.querySelector('#catalogAdmin').addEventListener('click',e=>{let b=e.target.closest('[data-remove]');if(!b)return;services=services.filter(s=>s.id!==b.dataset.remove);save();toast('حُذفت الخدمة.')});
-document.querySelector('#generateCopy').onclick=()=>{let s=services.find(x=>x.id===document.querySelector('#copilotSelect').value);if(!s)return;let out=`${s.title} — ${Number(s.price).toLocaleString('ar-SA')} ر.س\n\nعندك مشروع وتحتاجين ${s.description.replace(/[.،]+$/,'')}؟\n\nيشمل الطلب: ${s.description}\nمدة التنفيذ: ${s.delivery}\n\nقبل البدء نراجع التفاصيل ونتفق على النطاق النهائي. أرسلي لنا نبذة عن مشروعك لنقترح الخطوة المناسبة.\n\nملاحظة داخلية: راجعي نطاق التسليم والتكلفة والقدرة على التنفيذ قبل إرسال العرض للعميل.`;document.querySelector('#copilotOutput').value=out};
-document.querySelector('#copyText').onclick=async()=>{let t=document.querySelector('#copilotOutput').value;if(!t)return toast('جهزي المسودة أولًا.');try{await navigator.clipboard.writeText(t);toast('تم نسخ المسودة.')}catch{document.querySelector('#copilotOutput').select();document.execCommand('copy');toast('تم نسخ المسودة.')}};
-render();
+function renderPosts(posts, products) {
+  const grid = document.querySelector('#articleGrid');
+  const valid = [...posts].filter(p => p && p.title && p.body).sort((a,b) => String(b.publishedAt).localeCompare(String(a.publishedAt))).slice(0,6);
+  document.querySelector('#emptyPosts').hidden = valid.length > 0;
+  grid.innerHTML = valid.map((p, i) => {
+    const product = products.find(x => x.id === p.productId);
+    const paras = String(p.body).split(/\n\s*\n/).map(part => `<p>${escapeHtml(part).replace(/\n/g,'<br>')}</p>`).join('');
+    return `<article class="article-card" style="animation-delay:${i*.06}s"><span class="article-date">دليل معلوماتي · ${escapeHtml(p.publishedAt || '')}</span><h3>${escapeHtml(p.title)}</h3><p class="article-excerpt">${escapeHtml(p.excerpt || '')}</p><details><summary>اقرئي الدليل <b>＋</b></summary><div class="article-body">${paras}${product && urlIsSafe(product.affiliateUrl) ? `<a class="tool-link" href="${escapeHtml(product.affiliateUrl)}" target="_blank" rel="sponsored nofollow noopener">تفاصيل المنتج في المتجر ↗</a>` : ''}<small>مسودة معلوماتية مولّدة آليًا؛ تحققي من معلومات البائع قبل الشراء. لا تمثل تجربة شخصية.</small></div></details></article>`;
+  }).join('');
+}
+(async () => {
+  document.querySelector('#year').textContent = new Date().getFullYear();
+  const [products, posts] = await Promise.all([loadJson('products.json', []), loadJson('posts.json', [])]);
+  renderTools(products);
+  renderPosts(posts, products);
+})();
